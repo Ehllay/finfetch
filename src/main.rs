@@ -14,10 +14,8 @@ fn get_env(envin: &str) -> String {
     }
 }
 
-// Fetch List (temporal)
-#[allow(dead_code)]
-fn fetch() -> [&'static str; 18] {
-    [
+/* Fetch List (temporal)
+        [
         "OS",
         "Host",
         "Kernel",
@@ -37,7 +35,7 @@ fn fetch() -> [&'static str; 18] {
         "Network",
         "BIOS",
     ]
-}
+*/
 
 fn printinfo(info: &str, color: &str) {
     let fetch: String = match info {
