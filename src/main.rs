@@ -2,7 +2,9 @@ use std::{env, fmt, vec};
 
 use colored::*;
 
-// Vars
+// Default vars
+const USER_COLOR: &str = "purple";
+const HOST_COLOR: &str = USER_COLOR;
 const HOSTNAME_SYMBOL: &str = "@";
 const SEPARATOR: &str = ":";
 
@@ -48,12 +50,14 @@ fn getinfo(info: Fetches) -> String {
         Fetches::OS => whoami::distro().to_string(),
         Fetches::Host => whoami::devicename(),
         Fetches::DE => get_env("XDG_CURRENT_DESKTOP"),
+        Fetches::Kernel => todo!("Kernel not done yet"),
+        Fetches::Uptime => todo!(),
         _ => panic!("invalid fetch type"),
     }
     .to_string()
 }
 
-// Fetching
+// Fetching host and user names
 fn userhost() -> [String; 3] {
     [
         whoami::username(),
@@ -72,9 +76,9 @@ fn main() {
     let host = userhost();
     println!(
         "{}{}{}\n{}",
-        host[0].color("purple"),
+        host[0].color(USER_COLOR),
         host[1].bold(),
-        host[2].color("blue"),
+        host[2].color(HOST_COLOR),
         "-".repeat(host.join("").chars().count())
     );
 
