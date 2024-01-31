@@ -7,6 +7,7 @@ const HOSTNAME_SYMBOL: &str = "@";
 const SEPARATOR: &str = ":";
 
 #[allow(dead_code)]
+#[derive(Debug)]
 enum Fetches {
     OS,
     Host,
@@ -30,26 +31,7 @@ enum Fetches {
 
 impl fmt::Display for Fetches {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Fetches::OS => write!(f, "OS"),
-            Fetches::Host => write!(f, "Host"),
-            Fetches::Kernel => write!(f, "Kernel"),
-            Fetches::Uptime => write!(f, "Uptime"),
-            Fetches::Packages => write!(f, "Packages"),
-            Fetches::Shell => write!(f, "Shell"),
-            Fetches::Resolution => write!(f, "Resolution"),
-            Fetches::DE => write!(f, "DE"),
-            Fetches::Theme => write!(f, "Theme"),
-            Fetches::Icons => write!(f, "Icons"),
-            Fetches::Cursor => write!(f, "Cursor"),
-            Fetches::Terminal => write!(f, "Terminal"),
-            Fetches::Font => write!(f, "Font"),
-            Fetches::CPU => write!(f, "CPU"),
-            Fetches::GPU => write!(f, "GPU"),
-            Fetches::Memory => write!(f, "Memory"),
-            Fetches::Network => write!(f, "Network"),
-            Fetches::BIOS => write!(f, "BIOS"),
-        }
+        write!(f, "{}", format!("{self:?}"))
     }
 }
 
