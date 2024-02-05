@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 colored = "2.1.0"
+libmacchina = "7.2.1"
 whoami = "1.4.1"
