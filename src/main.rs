@@ -1,7 +1,6 @@
-#[allow(unused_imports)]
 use libmacchina::{
-    traits::GeneralReadout as _, traits::KernelReadout as _, GeneralReadout, KernelReadout,
-    MemoryReadout,
+    traits::GeneralReadout as _, traits::KernelReadout as _, traits::MemoryReadout as _,
+    GeneralReadout, KernelReadout, MemoryReadout,
 };
 
 use std::{fmt, vec};
@@ -40,7 +39,7 @@ enum Fetches {
 struct Readouts {
     general_readout: GeneralReadout,
     kernel_readout: KernelReadout,
-    //memory_readout: MemoryReadout,
+    memory_readout: MemoryReadout,
 }
 
 impl fmt::Display for Fetches {
@@ -56,6 +55,23 @@ fn getinfo(info: Fetches, readout: &Readouts) -> String {
         Fetches::DE => readout.general_readout.desktop_environment().unwrap(),
         Fetches::Kernel => readout.kernel_readout.os_release().unwrap(),
         Fetches::Uptime => uptime(readout),
+        Fetches::Packages => todo!("Packages is hard"),
+        Fetches::Shell => readout
+            .general_readout
+            .shell(
+                libmacchina::traits::ShellFormat::Relative,
+                libmacchina::traits::ShellKind::Default,
+            )
+            .unwrap(),
+        Fetches::Resolution => todo!("Resolution"),
+        Fetches::Theme => todo!("WM theme"),
+        Fetches::Cursor => todo!("Cursor"),
+        Fetches::Icons => todo!("Icons"),
+        Fetches::Terminal => term(readout),
+        Fetches::Font => todo!("Font is hard"),
+        Fetches::CPU => readout.general_readout.cpu_model_name().unwrap(),
+        Fetches::GPU => joingpus(readout),
+        Fetches::Memory => readout.memory_readout.total().unwrap().to_string(),
         _ => panic!("invalid fetch type"),
     }
     .to_string()
@@ -86,6 +102,24 @@ fn uptime(readout: &Readouts) -> String {
         .to_owned()
 }
 
+// Get terminal name and strip newline (why libmacchina)
+fn term(readout: &Readouts) -> String {
+    readout
+        .general_readout
+        .terminal()
+        .unwrap()
+        .to_owned()
+        .replace("\n", "")
+}
+
+fn joingpus(readout: &Readouts) -> String {
+    let gpus = readout.general_readout.gpus().unwrap();
+    gpus.iter()
+        .map(|x| x.to_string())
+        .collect::<Vec<String>>()
+        .join(",")
+}
+
 // Fetching host and user names
 fn userhost() -> [String; 3] {
     [
@@ -110,7 +144,7 @@ fn main() {
     let readouts = Readouts {
         general_readout: GeneralReadout::new(),
         kernel_readout: KernelReadout::new(),
-        //memory_readout: MemoryReadout::new(),
+        memory_readout: MemoryReadout::new(),
     };
 
     let host = userhost();
@@ -126,10 +160,14 @@ fn main() {
     let fetches = vec![
         Fetches::OS,
         Fetches::Host,
-        Fetches::DE,
         Fetches::Kernel,
         Fetches::Uptime,
+        Fetches::DE,
+        Fetches::Shell,
+        Fetches::Terminal,
+        Fetches::CPU,
+        Fetches::GPU,
     ];
     //Print items
-    printfetch(fetches, "blue", &readouts)
+    printfetch(fetches, "blue", &readouts);
 }
