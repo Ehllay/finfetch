@@ -1,11 +1,10 @@
+use colored::*;
 use libmacchina::{
     traits::GeneralReadout as _, traits::KernelReadout as _, traits::MemoryReadout as _,
     GeneralReadout, KernelReadout, MemoryReadout,
 };
 
-use std::{fmt, vec};
-
-use colored::*;
+use std::{env, fmt, vec};
 
 // Default vars
 const USER_COLOR: &str = "purple";
@@ -129,6 +128,16 @@ fn userhost() -> [String; 3] {
     ]
 }
 
+fn printhost(host: [String; 3], user_color: &str, host_color: &str) {
+    println!(
+        "{}{}{}\n{}",
+        host[0].color(user_color),
+        host[1].bold(),
+        host[2].color(host_color),
+        "-".repeat(host.join("").chars().count())
+    );
+}
+
 fn printfetch(fetches: Vec<Fetches>, color: &str, readout: &Readouts) {
     for i in fetches {
         println!(
@@ -140,7 +149,17 @@ fn printfetch(fetches: Vec<Fetches>, color: &str, readout: &Readouts) {
     }
 }
 
+fn help() {
+    println!(
+        "Usage:
+finfetch -h -> Show this message
+finfetch -v -> Show the current finfetch version"
+    )
+}
+
 fn main() {
+    let args: Vec<String> = env::args().collect();
+
     let readouts = Readouts {
         general_readout: GeneralReadout::new(),
         kernel_readout: KernelReadout::new(),
@@ -148,13 +167,6 @@ fn main() {
     };
 
     let host = userhost();
-    println!(
-        "{}{}{}\n{}",
-        host[0].color(USER_COLOR),
-        host[1].bold(),
-        host[2].color(HOST_COLOR),
-        "-".repeat(host.join("").chars().count())
-    );
 
     //Fetches
     let fetches = vec![
@@ -168,6 +180,17 @@ fn main() {
         Fetches::CPU,
         Fetches::GPU,
     ];
-    //Print items
-    printfetch(fetches, "blue", &readouts);
+
+    match args.len() {
+        1 => {
+            printhost(host, USER_COLOR, HOST_COLOR);
+            printfetch(fetches, "blue", &readouts)
+        }
+        2 => match &args[1] as &str {
+            "-h" | "--help" => help(),
+            "-v" | "--version" => println!("Finfetch v{}", env!("CARGO_PKG_VERSION")),
+            _ => help(),
+        },
+        _ => help(),
+    }
 }

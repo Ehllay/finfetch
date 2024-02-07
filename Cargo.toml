@@ -2,6 +2,12 @@
 name = "finfetch-rs"
 version = "0.1.0"
 edition = "2021"
+authors = ["Ehllay"]
+description = "A Neofetch/Hyfetch clone written in Rust"
+repository = "https://github.com/Ehllay/finfetch"
+license = "MIT"
+keywords = ["fetch", "pfetch", "cli", "system"]
+categories = ["command-line-utilities"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
