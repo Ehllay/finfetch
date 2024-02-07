@@ -152,8 +152,10 @@ fn printfetch(fetches: Vec<Fetches>, color: &str, readout: &Readouts) {
 fn help() {
     println!(
         "Usage:
-finfetch -h -> Show this message
-finfetch -v -> Show the current finfetch version"
+finfetch -h | --help -> Show this message
+finfetch -v | --version -> Show the current finfetch version
+finfetch -o | --hostonly -> Print only hostname info
+finfetch -f | --fetchonly -> Print only fetch info"
     )
 }
 
@@ -189,6 +191,8 @@ fn main() {
         2 => match &args[1] as &str {
             "-h" | "--help" => help(),
             "-v" | "--version" => println!("Finfetch v{}", env!("CARGO_PKG_VERSION")),
+            "-o" | "--hostonly" => printhost(host, USER_COLOR, HOST_COLOR),
+            "-f" | "--fetchonly" => printfetch(fetches, "blue", &readouts),
             _ => help(),
         },
         _ => help(),
