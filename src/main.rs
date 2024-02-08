@@ -1,16 +1,27 @@
+use clap::Parser;
 use colored::*;
+
 use libmacchina::{
     traits::GeneralReadout as _, traits::KernelReadout as _, traits::MemoryReadout as _,
     GeneralReadout, KernelReadout, MemoryReadout,
 };
 
-use std::{env, fmt, vec};
+use std::{fmt, vec};
 
 // Default vars
 const USER_COLOR: &str = "purple";
 const HOST_COLOR: &str = USER_COLOR;
 const HOSTNAME_SYMBOL: &str = "@";
 const SEPARATOR: &str = ":";
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    #[clap(short = 'o', long, help = "Only prints host info")]
+    hostonly: bool,
+    #[clap(short, long, help = "Only prints fetch info")]
+    fetchonly: bool,
+}
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -149,18 +160,8 @@ fn printfetch(fetches: Vec<Fetches>, color: &str, readout: &Readouts) {
     }
 }
 
-fn help() {
-    println!(
-        "Usage:
-finfetch -h | --help -> Show this message
-finfetch -v | --version -> Show the current finfetch version
-finfetch -o | --hostonly -> Print only hostname info
-finfetch -f | --fetchonly -> Print only fetch info"
-    )
-}
-
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let args = Args::parse();
 
     let readouts = Readouts {
         general_readout: GeneralReadout::new(),
@@ -183,18 +184,14 @@ fn main() {
         Fetches::GPU,
     ];
 
-    match args.len() {
-        1 => {
-            printhost(host, USER_COLOR, HOST_COLOR);
-            printfetch(fetches, "blue", &readouts)
-        }
-        2 => match &args[1] as &str {
-            "-h" | "--help" => help(),
-            "-v" | "--version" => println!("Finfetch v{}", env!("CARGO_PKG_VERSION")),
-            "-o" | "--hostonly" => printhost(host, USER_COLOR, HOST_COLOR),
-            "-f" | "--fetchonly" => printfetch(fetches, "blue", &readouts),
-            _ => help(),
-        },
-        _ => help(),
+    println!("{:?}", args);
+
+    if args.hostonly {
+        printhost(host, USER_COLOR, HOST_COLOR);
+    } else if args.fetchonly {
+        printfetch(fetches, "blue", &readouts)
+    } else {
+        printhost(host, USER_COLOR, HOST_COLOR);
+        printfetch(fetches, "blue", &readouts)
     }
 }
