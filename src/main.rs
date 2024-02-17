@@ -7,6 +7,7 @@ use libmacchina::{
 };
 
 use std::io::{self, BufWriter, Write};
+use std::time::Instant;
 use std::{fmt, vec};
 
 // Default vars
@@ -22,6 +23,9 @@ struct Args {
     hostonly: bool,
     #[clap(short, long, help = "Only prints fetch info")]
     fetchonly: bool,
+    //Debug
+    #[clap(long, help = "Tells how much time it took to run the fetch")]
+    time: bool,
 }
 
 #[allow(dead_code)]
@@ -215,6 +219,7 @@ fn main() {
 
     let stdout = io::stdout();
     let mut handle = BufWriter::new(stdout.lock());
+    let _ = handle.flush();
 
     let host = userhost();
 
@@ -232,6 +237,12 @@ fn main() {
         Fetches::Memory,
     ];
 
+    let instant: Option<Instant> = if args.time {
+        Some(Instant::now())
+    } else {
+        None
+    };
+
     if args.hostonly {
         printhost(&mut handle, host, USER_COLOR, HOST_COLOR);
     } else if args.fetchonly {
@@ -239,5 +250,12 @@ fn main() {
     } else {
         printhost(&mut handle, host, USER_COLOR, HOST_COLOR);
         printfetch(handle, fetches, "blue", &readouts)
+    }
+
+    if args.time {
+        println!(
+            "Took {:?}ms",
+            instant.expect("Couldn't get time").elapsed().as_millis()
+        );
     }
 }
