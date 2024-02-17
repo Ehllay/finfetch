@@ -89,7 +89,7 @@ fn getinfo(info: Fetches, readout: &Readouts) -> String {
         Fetches::GPU => joingpus(readout),
         Fetches::Memory => memory(readout),
         Fetches::Network => todo!("Network"),
-        Fetches::Battery => readout.battery_readout.percentage().unwrap().to_string(),
+        Fetches::Battery => format!("{}%", readout.battery_readout.percentage().unwrap()),
     }
     .to_string()
 }
