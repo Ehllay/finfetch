@@ -92,21 +92,27 @@ fn getinfo(info: Fetches, readout: &Readouts) -> String {
 
 //Get and format uptime
 fn uptime(readout: &Readouts) -> String {
-    let time = readout.general_readout.uptime().ok().unwrap();
+    let mut time = readout.general_readout.uptime().ok().unwrap();
     let days = if time > 86400 {
-        (time / 86400).to_string() + "d"
+        let d = time / 86400;
+        time %= 86400;
+        d.to_string() + "d"
     } else {
-        "".to_string()
+        String::new()
     };
     let hours = if time > 3600 {
-        (time / 3600).to_string() + "h"
+        let h = time / 3600;
+        time %= 3600;
+        h.to_string() + "h"
     } else {
-        "".to_string()
+        String::new()
     };
     let mins = if time > 60 {
-        (time / 60).to_string() + "m"
+        let m = time / 60;
+        time %= 60;
+        m.to_string() + "m"
     } else {
-        "".to_string()
+        String::new()
     };
     let secs = (time % 60).to_string() + "s";
 
