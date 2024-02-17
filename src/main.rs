@@ -45,7 +45,6 @@ enum Fetches {
     Memory,
     Network,
     Battery,
-    BIOS,
 }
 
 struct Readouts {
@@ -85,8 +84,8 @@ fn getinfo(info: Fetches, readout: &Readouts) -> String {
         Fetches::CPU => readout.general_readout.cpu_model_name().unwrap(),
         Fetches::GPU => joingpus(readout),
         Fetches::Memory => memory(readout),
+        Fetches::Network => todo!("Network"),
         Fetches::Battery => readout.battery_readout.percentage().unwrap().to_string(),
-        _ => panic!("invalid fetch type"),
     }
     .to_string()
 }
