@@ -2,8 +2,8 @@ use clap::Parser;
 use colored::*;
 
 use libmacchina::{
-    traits::GeneralReadout as _, traits::KernelReadout as _, traits::MemoryReadout as _,
-    GeneralReadout, KernelReadout, MemoryReadout,
+    traits::BatteryReadout as _, traits::GeneralReadout as _, traits::KernelReadout as _,
+    traits::MemoryReadout as _, BatteryReadout, GeneralReadout, KernelReadout, MemoryReadout,
 };
 
 use std::io::{self, BufWriter, Write};
@@ -44,11 +44,13 @@ enum Fetches {
     GPU,
     Memory,
     Network,
+    Battery,
     BIOS,
 }
 
 struct Readouts {
     general_readout: GeneralReadout,
+    battery_readout: BatteryReadout,
     kernel_readout: KernelReadout,
     memory_readout: MemoryReadout,
 }
@@ -83,6 +85,7 @@ fn getinfo(info: Fetches, readout: &Readouts) -> String {
         Fetches::CPU => readout.general_readout.cpu_model_name().unwrap(),
         Fetches::GPU => joingpus(readout),
         Fetches::Memory => memory(readout),
+        Fetches::Battery => readout.battery_readout.percentage().unwrap().to_string(),
         _ => panic!("invalid fetch type"),
     }
     .to_string()
@@ -200,6 +203,7 @@ fn main() {
 
     let readouts = Readouts {
         general_readout: GeneralReadout::new(),
+        battery_readout: BatteryReadout::new(),
         kernel_readout: KernelReadout::new(),
         memory_readout: MemoryReadout::new(),
     };
