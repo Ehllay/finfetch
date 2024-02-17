@@ -82,7 +82,7 @@ fn getinfo(info: Fetches, readout: &Readouts) -> String {
         Fetches::Font => todo!("Font is hard"),
         Fetches::CPU => readout.general_readout.cpu_model_name().unwrap(),
         Fetches::GPU => joingpus(readout),
-        Fetches::Memory => readout.memory_readout.total().unwrap().to_string(),
+        Fetches::Memory => memory(readout),
         _ => panic!("invalid fetch type"),
     }
     .to_string()
@@ -129,6 +129,26 @@ fn joingpus(readout: &Readouts) -> String {
         .map(|x| x.to_string())
         .collect::<Vec<String>>()
         .join(",")
+}
+
+fn memory(readout: &Readouts) -> String {
+    let total = readout.memory_readout.total();
+    let used = readout.memory_readout.used();
+
+    format!(
+        "{} / {}",
+        kib_to_appropriate(used.unwrap()),
+        kib_to_appropriate(total.unwrap())
+    )
+}
+
+fn kib_to_appropriate(i: u64) -> String {
+    match i {
+        i if i >= 1024 => format!("{} MiB", (i / 1024)),
+        i if i >= 1048576 => format!("{} GiB", (i / 1048576)),
+        _ => i.to_string(),
+    }
+    .to_string()
 }
 
 // Fetching host and user names
@@ -200,6 +220,7 @@ fn main() {
         Fetches::Terminal,
         Fetches::CPU,
         Fetches::GPU,
+        Fetches::Memory,
     ];
 
     if args.hostonly {
