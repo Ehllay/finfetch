@@ -3,7 +3,8 @@ use colored::*;
 
 use libmacchina::{
     traits::BatteryReadout as _, traits::GeneralReadout as _, traits::KernelReadout as _,
-    traits::MemoryReadout as _, BatteryReadout, GeneralReadout, KernelReadout, MemoryReadout,
+    traits::MemoryReadout as _, traits::PackageReadout as _, BatteryReadout, GeneralReadout,
+    KernelReadout, MemoryReadout, PackageReadout,
 };
 
 use std::io::{self, BufWriter, Write};
@@ -53,6 +54,7 @@ enum Fetches {
 
 struct Readouts {
     general_readout: GeneralReadout,
+    package_readout: PackageReadout,
     battery_readout: BatteryReadout,
     kernel_readout: KernelReadout,
     memory_readout: MemoryReadout,
@@ -71,7 +73,7 @@ fn getinfo(info: Fetches, readout: &Readouts) -> String {
         Fetches::DE => readout.general_readout.desktop_environment().unwrap(),
         Fetches::Kernel => readout.kernel_readout.os_release().unwrap(),
         Fetches::Uptime => uptime(readout),
-        Fetches::Packages => todo!("Packages is hard"),
+        Fetches::Packages => packages(readout),
         Fetches::Shell => readout
             .general_readout
             .shell(
@@ -123,6 +125,11 @@ fn uptime(readout: &Readouts) -> String {
     format!("{days} {hours} {mins} {secs}")
         .trim_start()
         .to_owned()
+}
+
+fn packages(readout: &Readouts) -> String {
+    let packages = &readout.package_readout.count_pkgs()[0];
+    format!("{} ({})", packages.1, packages.0.to_string())
 }
 
 // Get terminal name and strip newline (why libmacchina)
@@ -212,6 +219,7 @@ fn main() {
 
     let readouts = Readouts {
         general_readout: GeneralReadout::new(),
+        package_readout: PackageReadout::new(),
         battery_readout: BatteryReadout::new(),
         kernel_readout: KernelReadout::new(),
         memory_readout: MemoryReadout::new(),
@@ -228,6 +236,7 @@ fn main() {
         Fetches::OS,
         Fetches::Host,
         Fetches::Kernel,
+        Fetches::Packages,
         Fetches::Uptime,
         Fetches::DE,
         Fetches::Shell,
