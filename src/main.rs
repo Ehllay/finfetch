@@ -24,12 +24,14 @@ struct Args {
     hostonly: bool,
     #[clap(short, long, help = "Only prints fetch info")]
     fetchonly: bool,
+    #[clap(long, help = "Do not print colors")]
+    stdout: bool,
     //Debug
     #[clap(long, help = "Tells how much time it took to run the fetch")]
     time: bool,
 }
 
-#[allow(dead_code)]
+#[allow(dead_code, clippy::upper_case_acronyms)]
 #[derive(Debug)]
 enum Fetches {
     OS,
@@ -62,7 +64,7 @@ struct Readouts {
 
 impl fmt::Display for Fetches {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", format!("{self:?}"))
+        write!(f, "{self:?}")
     }
 }
 
@@ -139,7 +141,7 @@ fn term(readout: &Readouts) -> String {
         .terminal()
         .unwrap()
         .to_owned()
-        .replace("\n", "")
+        .replace('\n', "")
 }
 
 fn joingpus(readout: &Readouts) -> String {
@@ -184,16 +186,29 @@ fn printhost(
     host: [String; 3],
     user_color: &str,
     host_color: &str,
+    format: bool,
 ) {
-    writeln!(
-        handle,
-        "{}{}{}\n{}",
-        host[0].color(user_color),
-        host[1].bold(),
-        host[2].color(host_color),
-        "-".repeat(host.join("").chars().count())
-    )
-    .expect("Could not write to buffer");
+    if format {
+        writeln!(
+            handle,
+            "{}{}{}\n{}",
+            host[0].color(user_color),
+            host[1].bold(),
+            host[2].color(host_color),
+            "-".repeat(host.join("").chars().count())
+        )
+        .expect("Could not write to buffer");
+    } else {
+        writeln!(
+            handle,
+            "{}{}{}\n{}",
+            host[0],
+            host[1],
+            host[2],
+            "-".repeat(host.join("").chars().count())
+        )
+        .expect("Could not write to buffer");
+    }
 }
 
 fn printfetch(
@@ -201,12 +216,15 @@ fn printfetch(
     fetches: Vec<Fetches>,
     color: &str,
     readout: &Readouts,
+    format: bool,
 ) {
     for i in fetches {
         writeln!(
             handle,
             "{}{} {}",
-            i.to_string().color(color),
+            format
+                .then(|| i.to_string().color(color))
+                .unwrap_or_else(|| i.to_string().into()),
             SEPARATOR,
             getinfo(i, readout)
         )
@@ -252,13 +270,15 @@ fn main() {
         None
     };
 
+    let format = !args.stdout;
+
     if args.hostonly {
-        printhost(&mut handle, host, USER_COLOR, HOST_COLOR);
+        printhost(&mut handle, host, USER_COLOR, HOST_COLOR, format);
     } else if args.fetchonly {
-        printfetch(handle, fetches, "blue", &readouts)
+        printfetch(handle, fetches, "blue", &readouts, format)
     } else {
-        printhost(&mut handle, host, USER_COLOR, HOST_COLOR);
-        printfetch(handle, fetches, "blue", &readouts)
+        printhost(&mut handle, host, USER_COLOR, HOST_COLOR, format);
+        printfetch(handle, fetches, "blue", &readouts, format)
     }
 
     if args.time {
