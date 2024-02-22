@@ -26,6 +26,8 @@ struct Args {
     fetchonly: bool,
     #[clap(long, help = "Do not print colors")]
     stdout: bool,
+    #[clap(long, help = "Don't display architecture")]
+    noarch: bool,
     //Debug
     #[clap(long, help = "Tells how much time it took to run the fetch")]
     time: bool,
@@ -68,9 +70,9 @@ impl fmt::Display for Fetches {
     }
 }
 
-fn getinfo(info: Fetches, readout: &Readouts) -> String {
+fn getinfo(info: Fetches, readout: &Readouts, noarch: bool) -> String {
     match info {
-        Fetches::OS => whoami::distro(),
+        Fetches::OS => distro(noarch),
         Fetches::Host => whoami::devicename(),
         Fetches::DE => readout.general_readout.desktop_environment().unwrap(),
         Fetches::Kernel => readout.kernel_readout.os_release().unwrap(),
@@ -96,6 +98,13 @@ fn getinfo(info: Fetches, readout: &Readouts) -> String {
         Fetches::Battery => format!("{}%", readout.battery_readout.percentage().unwrap()),
     }
     .to_string()
+}
+
+fn distro(noarch: bool) -> String {
+    let arch = if noarch { "" } else { std::env::consts::ARCH };
+    format!("{} {}", whoami::distro(), arch)
+        .trim_end()
+        .to_string()
 }
 
 //Get and format uptime
@@ -217,6 +226,7 @@ fn printfetch(
     color: &str,
     readout: &Readouts,
     format: bool,
+    noarch: bool,
 ) {
     for i in fetches {
         writeln!(
@@ -226,7 +236,7 @@ fn printfetch(
                 .then(|| i.to_string().color(color))
                 .unwrap_or_else(|| i.to_string().into()),
             SEPARATOR,
-            getinfo(i, readout)
+            getinfo(i, readout, noarch)
         )
         .expect("Could not write to buffer")
     }
@@ -271,14 +281,15 @@ fn main() {
     };
 
     let format = !args.stdout;
+    let noarch = args.noarch;
 
     if args.hostonly {
         printhost(&mut handle, host, USER_COLOR, HOST_COLOR, format);
     } else if args.fetchonly {
-        printfetch(handle, fetches, "blue", &readouts, format)
+        printfetch(handle, fetches, "blue", &readouts, format, noarch)
     } else {
         printhost(&mut handle, host, USER_COLOR, HOST_COLOR, format);
-        printfetch(handle, fetches, "blue", &readouts, format)
+        printfetch(handle, fetches, "blue", &readouts, format, noarch)
     }
 
     if args.time {
