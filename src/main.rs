@@ -322,7 +322,7 @@ fn main() -> Result<(), confy::ConfyError> {
 
     let fetches: Vec<Fetches> = conf.to_fetches();
 
-    let host = userhost(&conf.separator);
+    let host = userhost(&conf.hostname_symbol);
 
     //Fetches
     let instant: Option<Instant> = if args.time {
