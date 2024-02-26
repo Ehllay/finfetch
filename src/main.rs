@@ -7,15 +7,12 @@ use libmacchina::{
     KernelReadout, MemoryReadout, PackageReadout,
 };
 
+use serde_derive::{Deserialize, Serialize};
 use std::io::{self, BufWriter, Write};
 use std::time::Instant;
-use std::{fmt, vec};
+use std::{fmt, str::FromStr};
 
 // Default vars
-const USER_COLOR: &str = "purple";
-const HOST_COLOR: &str = USER_COLOR;
-const HOSTNAME_SYMBOL: &str = "@";
-const SEPARATOR: &str = ":";
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -31,6 +28,45 @@ struct Args {
     //Debug
     #[clap(long, help = "Tells how much time it took to run the fetch")]
     time: bool,
+    #[clap(long, help = "Prints out where the config file is located")]
+    config_path: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Config {
+    fetches: Vec<String>,
+    color: String,
+    user_color: String,
+    host_color: String, // By default use user color
+    hostname_symbol: String,
+    separator: String,
+}
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            fetches: [
+                "OS", "Host", "Kernel", "Packages", "Uptime", "DE", "Shell", "Terminal", "CPU",
+                "GPU", "Memory",
+            ]
+            .iter()
+            .map(|v| v.to_string())
+            .collect(),
+            color: String::from("blue"),
+            user_color: String::from("green"),
+            host_color: String::from("green"),
+            hostname_symbol: String::from("@"),
+            separator: String::from(":"),
+        }
+    }
+}
+
+impl Config {
+    fn to_fetches(&self) -> Vec<Fetches> {
+        self.fetches
+            .iter()
+            .filter_map(|s| Fetches::from_str(s).ok())
+            .collect()
+    }
 }
 
 #[allow(dead_code, clippy::upper_case_acronyms)]
@@ -55,6 +91,38 @@ enum Fetches {
     Network,
     Battery,
 }
+impl FromStr for Fetches {
+    type Err = String;
+
+    fn from_str(fetch: &str) -> Result<Self, Self::Err> {
+        match fetch {
+            "OS" => Ok(Fetches::OS),
+            "Host" => Ok(Fetches::Host),
+            "Kernel" => Ok(Fetches::Kernel),
+            "Packages" => Ok(Fetches::Packages),
+            "Shell" => Ok(Fetches::Shell),
+            "Resolution" => Ok(Fetches::Resolution),
+            "DE" => Ok(Fetches::DE),
+            "Theme" => Ok(Fetches::Theme),
+            "Icons" => Ok(Fetches::Icons),
+            "Cursor" => Ok(Fetches::Cursor),
+            "Terminal" => Ok(Fetches::Terminal),
+            "Font" => Ok(Fetches::Font),
+            "CPU" => Ok(Fetches::CPU),
+            "GPU" => Ok(Fetches::GPU),
+            "Memory" => Ok(Fetches::Memory),
+            "Network" => Ok(Fetches::Network),
+            "Battery" => Ok(Fetches::Battery),
+            _ => Err(String::from("Unknown fetch type")),
+        }
+    }
+}
+
+impl fmt::Display for Fetches {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
 
 struct Readouts {
     general_readout: GeneralReadout,
@@ -62,12 +130,6 @@ struct Readouts {
     battery_readout: BatteryReadout,
     kernel_readout: KernelReadout,
     memory_readout: MemoryReadout,
-}
-
-impl fmt::Display for Fetches {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{self:?}")
-    }
 }
 
 fn getinfo(info: Fetches, readout: &Readouts, noarch: bool) -> String {
@@ -182,10 +244,10 @@ fn kib_to_appropriate(i: u64) -> String {
 }
 
 // Fetching host and user names
-fn userhost() -> [String; 3] {
+fn userhost(separator: &String) -> [String; 3] {
     [
         whoami::username(),
-        HOSTNAME_SYMBOL.to_string(),
+        separator.to_string(),
         whoami::hostname(),
     ]
 }
@@ -193,17 +255,16 @@ fn userhost() -> [String; 3] {
 fn printhost(
     handle: &mut BufWriter<io::StdoutLock<'_>>,
     host: [String; 3],
-    user_color: &str,
-    host_color: &str,
     format: bool,
+    config: &Config,
 ) {
     if format {
         writeln!(
             handle,
             "{}{}{}\n{}",
-            host[0].color(user_color),
+            host[0].color(&*config.user_color),
             host[1].bold(),
-            host[2].color(host_color),
+            host[2].color(&*config.host_color),
             "-".repeat(host.join("").chars().count())
         )
         .expect("Could not write to buffer");
@@ -223,9 +284,9 @@ fn printhost(
 fn printfetch(
     mut handle: io::BufWriter<io::StdoutLock<'_>>,
     fetches: Vec<Fetches>,
-    color: &str,
     readout: &Readouts,
     format: bool,
+    config: Config,
     noarch: bool,
 ) {
     for i in fetches {
@@ -233,16 +294,16 @@ fn printfetch(
             handle,
             "{}{} {}",
             format
-                .then(|| i.to_string().color(color))
+                .then(|| i.to_string().color(&*config.color))
                 .unwrap_or_else(|| i.to_string().into()),
-            SEPARATOR,
+            config.separator,
             getinfo(i, readout, noarch)
         )
         .expect("Could not write to buffer")
     }
 }
 
-fn main() {
+fn main() -> Result<(), confy::ConfyError> {
     let args = Args::parse();
 
     let readouts = Readouts {
@@ -257,23 +318,13 @@ fn main() {
     let mut handle = BufWriter::new(stdout.lock());
     let _ = handle.flush();
 
-    let host = userhost();
+    let conf: Config = confy::load("finfetch", "config")?;
+
+    let fetches: Vec<Fetches> = conf.to_fetches();
+
+    let host = userhost(&conf.separator);
 
     //Fetches
-    let fetches = vec![
-        Fetches::OS,
-        Fetches::Host,
-        Fetches::Kernel,
-        Fetches::Packages,
-        Fetches::Uptime,
-        Fetches::DE,
-        Fetches::Shell,
-        Fetches::Terminal,
-        Fetches::CPU,
-        Fetches::GPU,
-        Fetches::Memory,
-    ];
-
     let instant: Option<Instant> = if args.time {
         Some(Instant::now())
     } else {
@@ -283,13 +334,20 @@ fn main() {
     let format = !args.stdout;
     let noarch = args.noarch;
 
-    if args.hostonly {
-        printhost(&mut handle, host, USER_COLOR, HOST_COLOR, format);
+    if args.config_path {
+        match confy::get_configuration_file_path("finfetch", "config") {
+            Ok(path) => println!("{}", path.display()),
+            Err(err) => {
+                println!("Error retrieving config file path {}", err)
+            }
+        }
+    } else if args.hostonly {
+        printhost(&mut handle, host, format, &conf);
     } else if args.fetchonly {
-        printfetch(handle, fetches, "blue", &readouts, format, noarch)
+        printfetch(handle, fetches, &readouts, format, conf, noarch)
     } else {
-        printhost(&mut handle, host, USER_COLOR, HOST_COLOR, format);
-        printfetch(handle, fetches, "blue", &readouts, format, noarch)
+        printhost(&mut handle, host, format, &conf);
+        printfetch(handle, fetches, &readouts, format, conf, noarch)
     }
 
     if args.time {
@@ -298,4 +356,6 @@ fn main() {
             instant.expect("Couldn't get time").elapsed().as_millis()
         );
     }
+
+    Ok(())
 }
