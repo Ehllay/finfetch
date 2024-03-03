@@ -37,9 +37,12 @@ struct Config {
     fetches: Vec<String>,
     color: String,
     user_color: String,
+    fake_user: String,
     host_color: String, // By default use user color
     hostname_symbol: String,
     separator: String,
+    separator_color: String,
+    display_os_arch: bool,
 }
 impl Default for Config {
     fn default() -> Self {
@@ -53,9 +56,12 @@ impl Default for Config {
             .collect(),
             color: String::from("blue"),
             user_color: String::from("green"),
+            fake_user: String::new(),
             host_color: String::from("green"),
             hostname_symbol: String::from("@"),
             separator: String::from(":"),
+            separator_color: String::from("white"),
+            display_os_arch: true,
         }
     }
 }
@@ -132,7 +138,7 @@ struct Readouts {
     memory_readout: MemoryReadout,
 }
 
-fn getinfo(info: Fetches, readout: &Readouts, noarch: bool) -> String {
+fn getinfo(info: &Fetches, readout: &Readouts, noarch: bool) -> String {
     match info {
         Fetches::OS => distro(noarch),
         Fetches::Host => whoami::devicename(),
@@ -244,12 +250,14 @@ fn kib_to_appropriate(i: u64) -> String {
 }
 
 // Fetching host and user names
-fn userhost(separator: &String) -> [String; 3] {
-    [
-        whoami::username(),
-        separator.to_string(),
-        whoami::hostname(),
-    ]
+fn userhost(separator: &String, fake_user: &String) -> [String; 3] {
+    let user = if fake_user.is_empty() {
+        whoami::username()
+    } else {
+        fake_user.to_string()
+    };
+
+    [user, separator.to_string(), whoami::hostname()]
 }
 
 fn printhost(
@@ -289,17 +297,33 @@ fn printfetch(
     config: Config,
     noarch: bool,
 ) {
-    for i in fetches {
-        writeln!(
-            handle,
-            "{}{} {}",
-            format
-                .then(|| i.to_string().color(&*config.color))
-                .unwrap_or_else(|| i.to_string().into()),
-            config.separator,
-            getinfo(i, readout, noarch)
-        )
-        .expect("Could not write to buffer")
+    for i in &fetches {
+        let max_width = fetches
+            .iter()
+            .map(|f| f.to_string().len())
+            .max()
+            .unwrap_or(0);
+
+        let label = if format {
+            let colored_item = i.to_string().color(&*config.color);
+            let colored_separator = config.separator.color(&*config.separator_color);
+
+            format!(
+                "{}{}{}",
+                colored_item,
+                colored_separator,
+                " ".repeat(max_width - colored_item.chars().count() + 1)
+            )
+        } else {
+            format!(
+                "{}{}",
+                (i.to_string() + &config.separator),
+                " ".repeat(max_width)
+            )
+        };
+
+        writeln!(handle, "{}{}", label, getinfo(i, readout, noarch),)
+            .expect("Could not write to buffer")
     }
 }
 
@@ -322,7 +346,7 @@ fn main() -> Result<(), confy::ConfyError> {
 
     let fetches: Vec<Fetches> = conf.to_fetches();
 
-    let host = userhost(&conf.hostname_symbol);
+    let host = userhost(&conf.hostname_symbol, &conf.fake_user);
 
     //Fetches
     let instant: Option<Instant> = if args.time {
@@ -332,7 +356,7 @@ fn main() -> Result<(), confy::ConfyError> {
     };
 
     let format = !args.stdout;
-    let noarch = args.noarch;
+    let noarch = args.noarch || !conf.display_os_arch;
 
     if args.config_path {
         match confy::get_configuration_file_path("finfetch", "config") {
