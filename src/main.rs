@@ -42,6 +42,7 @@ struct Config {
     hostname_symbol: String,
     separator: String,
     separator_color: String,
+    alignment: bool,
     display_os_arch: bool,
 }
 impl Default for Config {
@@ -61,6 +62,7 @@ impl Default for Config {
             hostname_symbol: String::from("@"),
             separator: String::from(":"),
             separator_color: String::from("white"),
+            alignment: true,
             display_os_arch: true,
         }
     }
@@ -307,19 +309,18 @@ fn printfetch(
         let label = if format {
             let colored_item = i.to_string().color(&*config.color);
             let colored_separator = config.separator.color(&*config.separator_color);
-
-            format!(
-                "{}{}{}",
-                colored_item,
-                colored_separator,
-                " ".repeat(max_width - colored_item.chars().count() + 1)
-            )
+            if config.alignment {
+                format!(
+                    "{}{}{}",
+                    colored_item,
+                    colored_separator,
+                    " ".repeat(max_width - colored_item.chars().count() + 1)
+                )
+            } else {
+                format!("{}{} ", colored_item, colored_separator,)
+            }
         } else {
-            format!(
-                "{}{}",
-                (i.to_string() + &config.separator),
-                " ".repeat(max_width)
-            )
+            format!("{}{} ", i, &config.separator)
         };
 
         writeln!(handle, "{}{}", label, getinfo(i, readout, noarch),)
