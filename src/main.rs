@@ -10,9 +10,7 @@ use libmacchina::{
 use serde_derive::{Deserialize, Serialize};
 use std::io::{self, BufWriter, Write};
 use std::time::Instant;
-use std::{fmt, str::FromStr};
-
-// Default vars
+use std::{fmt, fs::read_to_string, str::FromStr};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -108,6 +106,7 @@ impl FromStr for Fetches {
             "Host" => Ok(Fetches::Host),
             "Kernel" => Ok(Fetches::Kernel),
             "Packages" => Ok(Fetches::Packages),
+            "Uptime" => Ok(Fetches::Uptime),
             "Shell" => Ok(Fetches::Shell),
             "Resolution" => Ok(Fetches::Resolution),
             "DE" => Ok(Fetches::DE),
@@ -143,7 +142,7 @@ struct Readouts {
 fn getinfo(info: &Fetches, readout: &Readouts, noarch: bool) -> String {
     match info {
         Fetches::OS => distro(noarch),
-        Fetches::Host => whoami::devicename(),
+        Fetches::Host => host(),
         Fetches::DE => readout.general_readout.desktop_environment().unwrap(),
         Fetches::Kernel => readout.kernel_readout.os_release().unwrap(),
         Fetches::Uptime => uptime(readout),
@@ -175,6 +174,20 @@ fn distro(noarch: bool) -> String {
     format!("{} {}", whoami::distro(), arch)
         .trim_end()
         .to_string()
+}
+
+fn host() -> String {
+    #[cfg(target_os = "linux")]
+    {
+        read_to_string("/sys/devices/virtual/dmi/id/product_name")
+            .expect("Unknown")
+            .replace('\n', "")
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        whoami::devicename()
+    }
 }
 
 //Get and format uptime
