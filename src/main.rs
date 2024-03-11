@@ -75,7 +75,7 @@ impl Config {
     }
 }
 
-#[allow(dead_code, clippy::upper_case_acronyms)]
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug)]
 enum Fetches {
     OS,
@@ -177,15 +177,12 @@ fn distro(noarch: bool) -> String {
 }
 
 fn host() -> String {
-    #[cfg(target_os = "linux")]
-    {
+    if cfg!(target_os = "linux") {
         read_to_string("/sys/devices/virtual/dmi/id/product_name")
             .expect("Unknown")
             .replace('\n', "")
-    }
-
-    #[cfg(not(target_os = "linux"))]
-    {
+    } else {
+        // TODO: Other OS support
         whoami::devicename()
     }
 }
