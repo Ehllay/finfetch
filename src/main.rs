@@ -186,7 +186,6 @@ fn host() -> String {
         whoami::devicename()
     }
 }
-
 //Get and format uptime
 fn uptime(readout: &Readouts) -> String {
     let mut time = readout.general_readout.uptime().ok().unwrap();
@@ -353,7 +352,13 @@ fn main() -> Result<(), confy::ConfyError> {
     let mut handle = BufWriter::new(stdout.lock());
     let _ = handle.flush();
 
-    let conf: Config = confy::load("finfetch", "config")?;
+    let conf: Config = match confy::load("finfetch", "config") {
+        Ok(config) => config,
+        Err(error) => {
+            eprintln!("Error loading config: {}", error);
+            Config::default()
+        }
+    };
 
     let fetches: Vec<Fetches> = conf.to_fetches();
 
