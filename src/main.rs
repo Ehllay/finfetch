@@ -33,6 +33,7 @@ struct Args {
 #[derive(Serialize, Deserialize)]
 struct Config {
     fetches: Vec<String>,
+    prefix: Vec<String>,
     color: String,
     user_color: String,
     fake_user: String,
@@ -53,6 +54,7 @@ impl Default for Config {
             .iter()
             .map(|v| v.to_string())
             .collect(),
+            prefix: vec![],
             color: String::from("blue"),
             user_color: String::from("green"),
             fake_user: String::new(),
@@ -308,7 +310,7 @@ fn printfetch(
     config: Config,
     noarch: bool,
 ) {
-    for i in &fetches {
+    for (j, i) in fetches.iter().enumerate() {
         let max_width = fetches
             .iter()
             .map(|f| f.to_string().len())
@@ -316,15 +318,25 @@ fn printfetch(
             .unwrap_or(0);
 
         let label = if format {
-            let colored_item = i.to_string().color(&*config.color);
+            let colored_item = format!("{}", i).color(&*config.color);
             let colored_separator = config.separator.color(&*config.separator_color);
             if config.alignment {
-                format!(
-                    "{}{}{}",
-                    colored_item,
-                    colored_separator,
-                    " ".repeat(max_width - colored_item.chars().count() + 1)
-                )
+                if !config.prefix.is_empty() {
+                    format!(
+                        "{}{}{}{}",
+                        config.prefix[j].color(&*config.color),
+                        colored_item,
+                        colored_separator,
+                        " ".repeat(max_width - colored_item.chars().count() + 1)
+                    )
+                } else {
+                    format!(
+                        "{}{}{}",
+                        colored_item,
+                        colored_separator,
+                        " ".repeat(max_width - colored_item.chars().count() + 1)
+                    )
+                }
             } else {
                 format!("{}{} ", colored_item, colored_separator,)
             }
